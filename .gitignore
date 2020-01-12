@@ -1,0 +1,6 @@
+*.pyc
+double_pendulum.py
+nnmodel_working.py
+testCases_v2.py
+*.json
+.DS_Store
