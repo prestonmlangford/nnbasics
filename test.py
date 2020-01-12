@@ -79,8 +79,8 @@ visualize_dataset(data)
 
 mod = nn.NNModel(
     [
-        nn.FullyConnected(2,4,"tanh"),
-        nn.FullyConnected(4,4,"tanh"),
+        nn.FullyConnected(2,8,"softsign"),
+        nn.FullyConnected(8,4,"softsign"),
         nn.FullyConnected(4,1,"sigmoid"),
     ]
 )

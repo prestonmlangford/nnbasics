@@ -8,30 +8,7 @@ import sklearn.linear_model
 from planar_utils import plot_decision_boundary, load_planar_dataset, load_extra_datasets
 
 
-def relu(Z):
-    return np.maximum(0,Z)
-    
 
-def drelu(A):
-    return np.double(A>0)
-    
-    
-def tanh(Z):
-    return np.tanh(Z)
-    
-    
-def dtanh(A):
-    return 1-np.square(A)
-    #return np.ones(A.shape)
-
-def sigmoid(Z):
-    return 1/(1+np.exp(-Z))
-    
-    
-def dsigmoid(A):
-    return A*(1-A)
-    
-    
 def cross_entropy(Y,Yh):
     
     # n is the number of training examples
@@ -79,7 +56,7 @@ class FullyConnected:
         # X is the input to the layer
         # these values get cached for the backwards pass
         self.n = 1
-        self.Y  = np.zeros((outputs,1))
+        self.dYdZ  = np.zeros((outputs,1))
         self.X  = np.zeros((inputs,1))
     
     def forward(self,X,update_cache = True):
@@ -90,19 +67,27 @@ class FullyConnected:
         Z = np.dot(self.W,X)+self.B
         
         # choose activation set by initialization
-        if self.activation == "tanh":
-            Y = tanh(Z)
+        if self.activation == "tanh":    
+            Y = np.tanh(Z)
+            dYdZ = 1-np.square(Y)
         elif self.activation == "relu":
-            Y = relu(Z)
+            Y = np.maximum(0,Z)
+            dYdZ = np.double(Y>0)
         elif self.activation == "sigmoid":
-            Y = sigmoid(Z)
+            Y = 1/(1+np.exp(-Z))
+            dYdZ = Y*(1-Y)
+        elif self.activation == "softsign":
+            gamma = 0.01
+            den = gamma+abs(Z)
+            Y = Z/den
+            dYdZ = gamma/(den*den)
         else:
             raise ValueError("FullyConnected layer activation type not set")
         
         if update_cache:
             # cache these for the backward pass to calculate gradients
             self.X = X
-            self.Y = Y
+            self.dYdZ = dYdZ
         
         return Y
     
@@ -112,24 +97,14 @@ class FullyConnected:
         # n is the number of training examples
         n = dY.shape[1]
         
-        # activation derivative must match forward pass
-        if self.activation == "tanh":
-            dG = dtanh(self.Y)
-        elif self.activation == "relu":
-            dG = drelu(self.Y)
-        elif self.activation == "sigmoid":
-            dG = dsigmoid(self.Y)
-        else:
-            raise ValueError("FullyConnected layer activation type not set")
-        
         # dZ[outputs,n] = dY[outputs,n] * dG[outputs,n]
-        dZ = dY*dG
+        dZ = dY*self.dYdZ
         
         # dW[outputs,inputs] = dZ[outputs,n] x dX'[n,inputs]
-        dW = (1/n)*np.dot(dZ,self.X.T)
+        dW = np.dot(dZ,self.X.T)/n
         
         # dB[outputs,1] = average over n dZ[outputs,n]
-        dB = (1/n)*np.sum(dZ,axis=1,keepdims=True)
+        dB = np.sum(dZ,axis=1,keepdims=True)/n
         
         # dX[inputs,n] = W'[inputs,outputs] x dZ[outputs,n]
         dX = np.dot(self.W.T,dZ)
@@ -157,8 +132,9 @@ class FullyConnected:
         sWc = self.sW/(1-np.power(beta_s,t))
         sBc = self.sB/(1-np.power(beta_s,t))
         
-        Wstep = alpha*vWc/(1e-8+np.sqrt(sWc))
-        Bstep = alpha*vBc/(1e-8+np.sqrt(sBc))
+        epsilon = 1e-8
+        Wstep = alpha*vWc/(epsilon+np.sqrt(sWc))
+        Bstep = alpha*vBc/(epsilon+np.sqrt(sBc))
         
         # uses "weight decay".  This is equivalent to L2 regularization
         # cost does not include the regularization cost, because why bother?
