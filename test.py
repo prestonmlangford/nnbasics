@@ -74,14 +74,15 @@ def make_2d_dataset(size,kind):
     return X,Y 
 
 
-data = make_2d_dataset(400,"gaussian")
+data = make_2d_dataset(400,"circles")
 visualize_dataset(data)
 
 mod = nn.NNModel(
     [
-        nn.FullyConnected(2,8,"softsign"),
-        nn.FullyConnected(8,4,"softsign"),
-        nn.FullyConnected(4,1,"sigmoid"),
+        nn.AnnealingFullyConnected(2,32),
+        nn.AnnealingFullyConnected(32,32),
+        nn.AnnealingFullyConnected(32,16),
+        nn.AnnealingFullyConnected(16,1),
     ]
 )
 
